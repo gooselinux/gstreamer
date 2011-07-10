@@ -1,0 +1,31 @@
+From 15141b3954fdfb46002783463f1cace148480fe9 Mon Sep 17 00:00:00 2001
+From: Wim Taymans <wim.taymans@collabora.co.uk>
+Date: Mon, 7 Jun 2010 10:16:04 +0200
+Subject: [PATCH] queue2: don't wait for data when EOS
+
+When in download mode and we need to provide data for an offset that we don't
+have, also perform a seek to the requested location when we are EOS. The reason
+why we shouldn't wait for more data is because after EOS, there simply will be
+no more data and we end up waiting forever.
+
+Fixes #620500
+---
+ plugins/elements/gstqueue2.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/plugins/elements/gstqueue2.c b/plugins/elements/gstqueue2.c
+index d3e8e2c..df8aaea 100644
+--- a/plugins/elements/gstqueue2.c
++++ b/plugins/elements/gstqueue2.c
+@@ -1051,7 +1051,7 @@ gst_queue2_have_data (GstQueue2 * queue, guint64 offset, guint length)
+     GST_INFO_OBJECT (queue, "not found in any range");
+     /* we don't have the range, see how far away we are, FIXME, find a good
+      * threshold based on the incomming rate. */
+-    if (queue->current) {
++    if (!queue->is_eos && queue->current) {
+       if (offset < queue->current->writing_pos + 200000) {
+         update_cur_pos (queue, queue->current, offset + length);
+         GST_INFO_OBJECT (queue, "wait for data");
+-- 
+1.7.0.1
+
